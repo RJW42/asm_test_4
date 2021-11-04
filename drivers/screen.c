@@ -1,61 +1,5 @@
-#define VIDEO_ADDRESS 0xb8000
-#define MAX_ROWS 25
-#define MAX_COLS 80
-#define WHITE_ON_BLACK 0x0f
-#define RED_ON_WHITE 0xf4
-
-/* Screen i/o ports */
-#define REG_SCREEN_CTRL 0x3d4
-#define REG_SCREEN_DATA 0x3d5
-
-void clear_screen();
-void kprint_at(char *message, int col, int row);
-void kprint(char *message);
-unsigned char port_byte_in (unsigned short port);
-void port_byte_out (unsigned short port, unsigned char data);
-unsigned short port_word_in (unsigned short port);
-void port_word_out (unsigned short port, unsigned short data);
-
-void main() {
-    clear_screen();
-    kprint_at("X", 0, 0);
-}
-
-/**
- * Read a byte from the specified port
- */
-unsigned char port_byte_in (unsigned short port) {
-    unsigned char result;
-    /* Inline assembler syntax
-     * !! Notice how the source and destination registers are switched from NASM !!
-     *
-     * '"=a" (result)'; set '=' the C variable '(result)' to the value of register e'a'x
-     * '"d" (port)': map the C variable '(port)' into e'd'x register
-     *
-     * Inputs and outputs are separated by colons
-     */
-    __asm__("in %%dx, %%al" : "=a" (result) : "d" (port));
-    return result;
-}
-
-void port_byte_out (unsigned short port, unsigned char data) {
-    /* Notice how here both registers are mapped to C variables and
-     * nothing is returned, thus, no equals '=' in the asm syntax 
-     * However we see a comma since there are two variables in the input area
-     * and none in the 'return' area
-     */
-    __asm__("out %%al, %%dx" : : "a" (data), "d" (port));
-}
-
-unsigned short port_word_in (unsigned short port) {
-    unsigned short result;
-    __asm__("in %%dx, %%ax" : "=a" (result) : "d" (port));
-    return result;
-}
-
-void port_word_out (unsigned short port, unsigned short data) {
-    __asm__("out %%ax, %%dx" : : "a" (data), "d" (port));
-}
+#include "screen.h"
+#include "ports.h"
 
 /* Declaration of private functions */
 int get_cursor_offset();
@@ -176,4 +120,3 @@ void clear_screen() {
 int get_offset(int col, int row) { return 2 * (row * MAX_COLS + col); }
 int get_offset_row(int offset) { return offset / (2 * MAX_COLS); }
 int get_offset_col(int offset) { return (offset - (get_offset_row(offset)*2*MAX_COLS))/2; }
-
