@@ -5,6 +5,7 @@ OBJ = ${C_SOURCES:.c=.o}
 
 CC = gcc
 CCFLAGS = -m32 -ffreestanding
+XORRISO = --xorriso="./xorriso/xorriso/xorriso" # Needed in labs 
 
 AS := nasm # Deal with it
 ASFLAGS := -f elf32 # ELF binary in multiboot format ... mmm ... yummy
@@ -13,7 +14,7 @@ LD := ld
 LDFLAGS := -melf_i386
 LDFILE := link.ld
 
-MKRESCUE := grub-mkrescue # On your system it might be called differently
+MKRESCUE := grub2-mkrescue # On your system it might be called differently
 
 
 # Build Process 
@@ -32,11 +33,11 @@ iso: kernel.bin
 	mkdir -p .isodir/boot/grub
 	cp kernel.bin .isodir/boot/
 	cp grub.cfg .isodir/boot/grub
-	$(MKRESCUE) -o myos.iso .isodir
+	$(MKRESCUE) $(XORRISO) -o myos.iso .isodir
 
 # Generics 
 %.o: %.c ${HEADERS}
 	${CC} ${CCFLAGS} -c $< -o $@
 
 clean:
-	rm -f *.o *.iso *.bin .isodir/boot/kernel  kernel/*.o drivers/*.o
+	rm -f *.o *.iso *.bin .isodir/boot/kernel.bin  kernel/*.o drivers/*.o
