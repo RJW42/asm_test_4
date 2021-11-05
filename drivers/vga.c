@@ -1,5 +1,6 @@
 #include "./ports.h"
 #include "./vga.h"
+#include "../cpu/types.h"
 
 
 // VGA Ports
@@ -15,32 +16,32 @@
 #define ATTRIBUTE_CONTROLLER_WRITE_PORT 0x3c0
 #define ATTRIBUTE_CONTROLLER_RESET_PORT 0x3da
 
-#define UNSET (unsigned char*)42
+#define UNSET (u8*)42
 
 
 // Define gloabls 
-unsigned char* frame_buffer_segment = UNSET;
+u8* frame_buffer_segment = UNSET;
 
 
 // Define hidden functions 
-int supports_mode(unsigned int width, unsigned int height, unsigned int color_depth);
+int supports_mode(u32 width, u32 height, u32 color_depth);
 
-void write_vga_registers(unsigned char * registers);
+void write_vga_registers(u8* registers);
 
-unsigned char* get_frame_buffer_segment();
-unsigned char* get_preset_frame_buffer_segment();
+u8* get_frame_buffer_segment();
+u8* get_preset_frame_buffer_segment();
 
 
 
 // Define functions 
-int set_vga_mode(unsigned int width, unsigned int height, unsigned int color_depth){
+int set_vga_mode(u32 width, u32 height, u32 color_depth){
     // Check if the mode is unsuported 
     if(!supports_mode(width, height, color_depth)){
         return 0;
     }
 
     // Set the onde mode 
-    unsigned char g_320x200x256[] = {
+    u8 g_320x200x256[] = {
         /* MISC */
             0x63,
         /* SEQ */
@@ -65,29 +66,29 @@ int set_vga_mode(unsigned int width, unsigned int height, unsigned int color_dep
 }
 
 
-void put_pixel_exact(unsigned int x, unsigned int y, unsigned char color_value){
-    unsigned char *p = ((unsigned char*)0xA0000) + 320 * y + x;
+void put_pixel_exact(u32 x, u32 y, u8 color_value){
+    u8 *p = ((u8*)0xA0000) + 320 * y + x;
     *p = color_value;
 }
 
-void put_pixel(unsigned int x, unsigned int y, unsigned char r, unsigned char g, unsigned char b){
-    unsigned char color_value = (r * 6/256) * 36 + (g * 6/256) + (b * 6/256);
+void put_pixel(u32 x, u32 y, u8 r, u8 g, u8 b){
+    u8 color_value = (r * 6/256) * 36 + (g * 6/256) + (b * 6/256);
     put_pixel_exact(x, y, color_value);
 }
 
 
-int supports_mode(unsigned int width, unsigned int height, unsigned int color_depth){
+int supports_mode(u32 width, u32 height, u32 color_depth){
     // Only Support One Mode 
     return width == 320 && height == 200 && color_depth == 8;
 }
 
 
-void write_vga_registers(unsigned char * registers){
+void write_vga_registers(u8 * registers){
     // Misc 1 
     port_byte_out(VGA_MISC_PORT, *(registers++));
     
     // SEQ 5
-    for(unsigned char i = 0; i < 5; i++){
+    for(u8 i = 0; i < 5; i++){
         port_byte_out(SEQUENCER_INDEX_PORT, i); // Set index 
         port_byte_out(SEQUENCER_DATA_PORT, *(registers++)); // Set Value 
     }
@@ -102,19 +103,19 @@ void write_vga_registers(unsigned char * registers){
     registers[0x03] = registers[0x03] | 0x80; // Prevent locking 
     registers[0x11] = registers[0x11] | ~0x80;
 
-    for(unsigned char i = 0; i < 25; i++){
+    for(u8 i = 0; i < 25; i++){
         port_byte_out(CRTC_INDEX_PORT, i); // Set Index 
         port_byte_out(CRTC_DATA_PORT, *(registers++)); // Set Value
     }
 
     // GC 9
-    for(unsigned char i = 0; i < 9; i++){
+    for(u8 i = 0; i < 9; i++){
         port_byte_out(GRAPHICS_CONTROLLER_INDEX_PORT, i); // Set Index
         port_byte_out(GRAPHICS_CONTROLLER_DATA_PORT, *(registers++)); // Set Value
     }
 
     // AC 21 
-    for(unsigned char i = 0; i < 21; i++){
+    for(u8 i = 0; i < 21; i++){
         port_byte_in(ATTRIBUTE_CONTROLLER_RESET_PORT); // Reset before send data. Reading triggers a reset 
         port_byte_out(ATTRIBUTE_CONTROLLER_INDEX_PORT, i); // Set Index 
         port_byte_out(ATTRIBUTE_CONTROLLER_WRITE_PORT, *(registers++)); // Set Value
@@ -125,7 +126,7 @@ void write_vga_registers(unsigned char * registers){
 }
 
 
-unsigned char* get_preset_frame_buffer_segment(){
+u8* get_preset_frame_buffer_segment(){
     // Check if set 
     if(frame_buffer_segment == UNSET){
         frame_buffer_segment = get_frame_buffer_segment();
@@ -135,15 +136,15 @@ unsigned char* get_preset_frame_buffer_segment(){
 }
 
 
-unsigned char* get_frame_buffer_segment(){
+u8* get_frame_buffer_segment(){
     port_byte_out(GRAPHICS_CONTROLLER_INDEX_PORT, 0x06);
-    unsigned char seg_number = ((port_byte_in(GRAPHICS_CONTROLLER_DATA_PORT) >> 2) & 0x03);
+    u8 seg_number = ((port_byte_in(GRAPHICS_CONTROLLER_DATA_PORT) >> 2) & 0x03);
 
     switch(seg_number){
         default:
-        case 0: return (unsigned char*)0x00000;
-        case 1: return (unsigned char*)0xA0000;
-        case 2: return (unsigned char*)0xB0000;
-        case 3: return (unsigned char*)0xB8000;
+        case 0: return (u8*)0x00000;
+        case 1: return (u8*)0xA0000;
+        case 2: return (u8*)0xB0000;
+        case 3: return (u8*)0xB8000;
     }
 }
